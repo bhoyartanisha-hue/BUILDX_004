@@ -4,13 +4,13 @@ import { AnvayaApp } from "@/features/anvaya/App";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Anvaya — Nagpur Civic Operations" },
+      { title: "Nagar Setu — Nagpur Civic Operations" },
       {
         name: "description",
         content:
           "Live Nagpur utilities map, road health, work verification, asset expiry and citizen complaint tracking — all in one civic operations console.",
       },
-      { property: "og:title", content: "Anvaya — Nagpur Civic Operations" },
+      { property: "og:title", content: "Nagar Setu — Nagpur Civic Operations" },
       {
         property: "og:description",
         content:
