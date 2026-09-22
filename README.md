@@ -20,53 +20,87 @@
 
 ---
 
-## 🛠️ Technology Stack
+## 🛠️ Technology Stack & Backend Architecture
 
 - **Frontend Core**: React 19, TypeScript, Vite
 - **Routing & SSR**: TanStack Start, TanStack Router (file-based routing)
 - **Styling & UI**: Tailwind CSS v4, Lucide Icons, Custom Design Tokens
 - **Mapping**: Leaflet, React Leaflet, OpenStreetMap
-- **Data & AI**: Supabase (Database & Auth Client), Groq API (AI Complaint Classification)
-- **State & Form Management**: React Context, React Hook Form, Zod
+- **Backend Stack**: Supabase Local CLI Stack (Postgres + Edge Functions via Docker)
+- **AI & LLM**: Groq API (`llama-3.3-70b-versatile`) with shared client integration
 
 ---
 
-## 🚀 Getting Started
+## 🗄️ Database Schema & Local Supabase Stack
+
+The backend runs entirely on your local machine using the Supabase CLI development stack.
+
+### Postgres Database Tables (`supabase/migrations/`)
+- `complaints`: Citizen complaint reports (category, department, severity 1-5, source, lat/lng, status, timeline, cluster_id, acknowledgment).
+- `clusters`: Grouped spatial complaint clusters (centroid coordinates, occurrence_count, is_hotspot flag).
+- `assets`: Municipal infrastructure assets (streetlights, wires, pipelines, chambers, install/expiry dates, GeoJSON geometry, cost).
+- `road_segments`: Road health monitoring segments (GeoJSON coordinates, repair_history, health_score, last_prediction).
+
+### ⚡ Supabase Edge Functions (`supabase/functions/`)
+Each function maps directly to a PRD feature:
+1. `classify-complaint` (PRD §4.1, §5): Uses Groq LLM to classify complaint text into category, department, urgency, and severity (1-5).
+2. `draft-acknowledgment` (PRD §4.3): Uses shared Groq client module to generate empathetic acknowledgment messages in `en`, `hi`, or `mr`.
+3. `check-duplicates` (PRD §4.2): Performs spatial 500m radius query + local TF-IDF cosine text similarity scoring to find duplicate reports.
+4. `cluster-complaint` (PRD §4.4): Groups complaints into spatial clusters, updates centroids, and flags recurring hotspots (`occurrence_count >= 3`).
+5. `predict-maintenance` (PRD §4.12): Analyzes road repair history & health scores with Groq LLM to generate plain-language maintenance recommendations.
+6. `compute-health-score` (PRD §4.11, §13): Deterministic road health score formula (`100 - (activeComplaints * 8 + criticalComplaints * 15)`).
+7. `update-verification` (PRD §4.13): Advances complaint from Pending Verification → Verified and appends verification entry to complaint timeline.
+
+---
+
+## 🚀 Getting Started & Local Backend Setup
 
 ### Prerequisites
 
-Ensure you have Node.js (v18+) and npm installed on your machine.
+Ensure you have Node.js (v18+), npm, Docker Desktop (for local Supabase CLI), and Supabase CLI installed.
 
-### Installation
+### 1. Installation & Environment
 
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd nagar-setu
-   ```
+Clone the repository and install dependencies:
+```bash
+git clone <repository-url>
+cd nagar-setu
+npm install
+```
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
+Set your `GROQ_API_KEY` in `.env`:
+```env
+GROQ_API_KEY=your_groq_api_key_here
+```
 
-3. **Configure Environment Variables**:
-   Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-   Fill in your Supabase credentials and Groq API key if available (the application will run with local fallback data if not configured):
-   ```env
-   VITE_SUPABASE_URL=your_supabase_project_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   VITE_GROQ_API_KEY=your_groq_api_key
-   ```
+### 2. Starting Local Supabase Stack & Migrations
 
-4. **Start the local development server**:
-   ```bash
-   npm run dev
-   ```
-   Open your browser at `http://localhost:3000`.
+Start the local Supabase services (Postgres, Studio, Storage, Edge Runtime):
+```bash
+npx supabase start
+```
+
+Run migrations and seed the local Postgres database with Nagpur demo data:
+```bash
+npx supabase db reset
+```
+
+Serve the local Supabase Edge Functions:
+```bash
+npx supabase functions serve
+```
+
+### 3. Starting Local Frontend Server
+
+Start the local dev server:
+```bash
+npm run dev
+```
+Open your browser at `http://localhost:3000`.
 
 ---
 
@@ -95,8 +129,20 @@ nagar-setu/
 │   │       ├── store.tsx   # React state management store
 │   │       └── types.ts    # Type definitions for civic domain model
 │   ├── routes/             # TanStack Start file-based routes (__root.tsx, index.tsx)
-│   ├── server.ts           # Server entry point
-│   └── styles.css          # Global CSS & Tailwind configuration
+│   └── server.ts           # Server entry point
+├── supabase/
+│   ├── config.toml         # Supabase local development configuration
+│   ├── seed.sql            # Seed dataset for Nagpur ward utility features & complaints
+│   ├── migrations/         # Postgres schema migrations (complaints, clusters, assets, roads)
+│   └── functions/          # Deno Edge Functions
+│       ├── _shared/        # Shared Groq API client & CORS headers
+│       ├── classify-complaint/
+│       ├── draft-acknowledgment/
+│       ├── check-duplicates/
+│       ├── cluster-complaint/
+│       ├── predict-maintenance/
+│       ├── compute-health-score/
+│       └── update-verification/
 ├── .env.example            # Environment variable template
 ├── package.json            # Project dependencies and scripts
 └── vite.config.ts          # Vite & TanStack Start build configuration
