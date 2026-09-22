@@ -1,2 +1,0 @@
-import type { Severity } from "@/data/types";
-export function StatusBadge({band,label}:{band:Severity;label:string}){return <span className={`inline-flex items-center gap-2 border px-2.5 py-1 text-xs font-medium ${band==="critical"?"border-trunk/40 bg-trunk/10 text-trunk":band==="resolved"?"border-chamber/40 bg-chamber/10 text-chamber-dark":"border-connection/50 bg-connection/10 text-connection-dark"}`}><span className={`size-1.5 ${band==="critical"?"bg-trunk":band==="resolved"?"bg-chamber":"bg-connection"}`}/>{label}</span>}
